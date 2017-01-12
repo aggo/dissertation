@@ -9,6 +9,7 @@ from skimage.morphology import disk
 import matplotlib.pyplot as plt
 import numpy as np
 from skimage.morphology import opening
+from skimage.morphology import reconstruction
 from skimage.morphology import remove_small_objects
 from skimage.morphology import square
 
@@ -136,6 +137,31 @@ def plot_comparison(original, filtered, filter_name):
 def morphological_closing(image, structuring_element=disk(5)):
     return closing(image, structuring_element)
 
+def fill_holes(image):
+    seed_image = np.copy(image)  # the max possible values of the original image
+    seed_image[1:-1, 1:-1] = image.max() # along the borders, use original values
+    # (the border pixels will be the starting point for the erosion process)
+    mask = image
+    filled = reconstruction(seed_image, mask, method="erosion")
+    return filled
+
+    # fig, ax = plt.subplots(1, 2, figsize=(5, 4), sharex=True, sharey=True, subplot_kw={'adjustable': 'box-forced'})
+    # ax = ax.ravel()
+    #
+    # ax[0].imshow(image)
+    # ax[0].set_title('Original image')
+    # ax[0].axis('off')
+    # ax[1].imshow(filled)
+    # ax[1].set_title('after filling holes')
+    # ax[1].axis('off')
+    # show the holes
+    # ax[2].imshow(image - filled)
+    # ax[2].set_title('holes')
+    # ax[2].axis('off')
+
+    # if we wanted bright spots, we'd use dilation instead of erosion
+    # (dilation expands the maximal values of the seed image until it encounters a max image)
+    # for this, init the seed image with the minimum image intensity instead of the maximum
 
 
 
@@ -156,9 +182,11 @@ if __name__ == "__main__":
     # display_all([imageL, denoised_image, binary_thresholded_image, connected_components_image, largest_area_only_image])
     # display_image(small_objects_removed_image)
     smoothened_image = smoothen_image(small_objects_removed_image)
-    plot_comparison(small_objects_removed_image, smoothened_image, "Smoothened")
+    # plot_comparison(small_objects_removed_image, smoothened_image, "Smoothened")
     morphological_closing_image = morphological_closing(smoothened_image, structuring_element=disk(5))
-    plot_comparison(image, morphological_closing_image, "Morphological closing")
+    # plot_comparison(image, morphological_closing_image, "Morphological closing")
+    holes_filled_image = fill_holes(morphological_closing_image)
+    plot_comparison(morphological_closing_image, holes_filled_image, "Holes filled")
 
     # display_image(smoothened_image)
     # display_all([largest_area_only_image, small_objects_removed_image])
