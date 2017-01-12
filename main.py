@@ -4,6 +4,7 @@ from skimage import measure
 from skimage import data, io, filters
 from skimage.filters import median
 from skimage.filters import threshold_otsu
+from skimage.morphology import closing
 from skimage.morphology import disk
 import matplotlib.pyplot as plt
 import numpy as np
@@ -67,8 +68,14 @@ def label_connected_components(image, display=False):
     return blobs_labels
 
 
-def morphological_opening_to_remove_extra_objects(image, neighborhood):
-    return opening(image, neighborhood)
+def morphological_opening_to_remove_extra_objects(image, structuring_element):
+    """
+    neighborhood = structuring element = selem
+    :param image:
+    :param structuring_element:
+    :return:
+    """
+    return opening(image, structuring_element)
 
 
 def display_all(images):
@@ -90,16 +97,44 @@ def smoothen_image(image):
     """
     window = square(3)
     def _replace_center_with_one_if_five_neighbors_are_one(values):
+        """
+        For each location in the input image, the value returned by the function is the value assigned to that location.
+        That's why, naturally, the function needs to return a scalar.
+        :param values:
+        :return: a scalar representing the value to be set at the current location in the input image
+        """
         ones_count = 0
         for entry in values:
             if entry == 1:
                 ones_count += 1
         if ones_count >= 5:
-            values[4] = 1
-        return values
+            return 1
+        else:
+            return 0
 
-    return generic_filter(image, _replace_center_with_one_if_five_neighbors_are_one, footprint = window)
+    """
+    This call will take windows of the shape given by the footprint, send them as an 1D array to the _replace function
+    and return the value that is to be set in the center of the window. The edges are ignored (for now)
+    """
+    new_image = generic_filter(image, _replace_center_with_one_if_five_neighbors_are_one, footprint = window)
+    return new_image
 
+
+def plot_comparison(original, filtered, filter_name):
+
+    fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(8, 4), sharex=True, sharey=True)
+    ax1.imshow(original, cmap=plt.cm.gray)
+    ax1.set_title('original')
+    ax1.axis('off')
+    ax1.set_adjustable('box-forced')
+    ax2.imshow(filtered, cmap=plt.cm.gray)
+    ax2.set_title(filter_name)
+    ax2.axis('off')
+    ax2.set_adjustable('box-forced')
+    plt.show()
+
+def morphological_closing(image, structuring_element=disk(5)):
+    return closing(image, structuring_element)
 
 
 
@@ -110,15 +145,21 @@ if __name__ == "__main__":
     # display_image(image)
     denoised_image = denoise(image)
     # display_image(denoised_image)
-    binary_thresholded_image = binary_image_with_threshold(denoised_image, 18, display=False)
+    binary_thresholded_image = binary_image_with_threshold(denoised_image, threshold=18, display=False)
     # display_image(binary_thresholded_image)
     connected_components_image = label_connected_components(binary_thresholded_image, display=False)
     # display_image(connected_components_image, cmap='spectral')
     largest_area_only_image = morphological_opening_to_remove_extra_objects(connected_components_image,
-                                                                            neighborhood=square(10))
+                                                                            structuring_element=square(10))
     # display_image(largest_area_only_image)
-    small_objects_removed_image = remove_small_objects(largest_area_only_image, 100)
-    # display_all([image, denoised_image, binary_thresholded_image, connected_components_image, largest_area_only_image])
-    display_image(small_objects_removed_image)
-    display_all([largest_area_only_image, small_objects_removed_image])
+    small_objects_removed_image = remove_small_objects(largest_area_only_image, min_size=100)
+    # display_all([imageL, denoised_image, binary_thresholded_image, connected_components_image, largest_area_only_image])
+    # display_image(small_objects_removed_image)
+    smoothened_image = smoothen_image(small_objects_removed_image)
+    plot_comparison(small_objects_removed_image, smoothened_image, "Smoothened")
+    morphological_closing_image = morphological_closing(smoothened_image, structuring_element=disk(5))
+    plot_comparison(image, morphological_closing_image, "Morphological closing")
+
+    # display_image(smoothened_image)
+    # display_all([largest_area_only_image, small_objects_removed_image])
     print("Done!")
