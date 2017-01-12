@@ -165,6 +165,7 @@ def fill_holes(image):
     # for this, init the seed image with the minimum image intensity instead of the maximum
 
 def crop_biggest_object(image):
+    # via https://gist.github.com/wkentaro/016b6bbb32e8663ac673
     label_img = measure.label(image)
 
     # get biggest area
