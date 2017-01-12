@@ -4,6 +4,7 @@ from skimage import measure
 from skimage import data, io, filters
 from skimage.filters import median
 from skimage.filters import threshold_otsu
+from skimage.measure import regionprops
 from skimage.morphology import closing
 from skimage.morphology import disk
 import matplotlib.pyplot as plt
@@ -163,6 +164,14 @@ def fill_holes(image):
     # (dilation expands the maximal values of the seed image until it encounters a max image)
     # for this, init the seed image with the minimum image intensity instead of the maximum
 
+def crop_biggest_object(image):
+    label_img = measure.label(image)
+
+    # get biggest area
+    max_region = sorted((region.area, region)
+        for region in regionprops(label_img))[-1][1]
+    minr, minc, maxr, maxc = max_region.bbox
+    return image[minr:maxr, minc:maxc]
 
 
 if __name__ == "__main__":
@@ -186,7 +195,13 @@ if __name__ == "__main__":
     morphological_closing_image = morphological_closing(smoothened_image, structuring_element=disk(5))
     # plot_comparison(image, morphological_closing_image, "Morphological closing")
     holes_filled_image = fill_holes(morphological_closing_image)
-    plot_comparison(morphological_closing_image, holes_filled_image, "Holes filled")
+    # plot_comparison(morphological_closing_image, holes_filled_image, "Holes filled")
+
+    multiplied_image = holes_filled_image*image
+    # display_image(multiplied_image)
+
+    cropped_image = crop_biggest_object(multiplied_image)
+    plot_comparison(multiplied_image, cropped_image)
 
     # display_image(smoothened_image)
     # display_all([largest_area_only_image, small_objects_removed_image])
