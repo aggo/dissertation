@@ -1,8 +1,9 @@
-from scipy.ndimage import generic_filter
+from scipy.ndimage import generic_filter, morphology
 from skimage import measure
 
 from skimage import data, io, filters
 from skimage.filters import median
+from skimage.restoration import denoise_tv_chambolle
 from skimage.filters import threshold_otsu
 from skimage.measure import regionprops
 from skimage.morphology import closing
@@ -166,18 +167,25 @@ def fill_holes(image):
 
 def crop_biggest_object(image):
     # via https://gist.github.com/wkentaro/016b6bbb32e8663ac673
-    label_img = measure.label(image)
-
+    imgray = image
+    img_denoised = denoise_tv_chambolle(imgray, weight=.1)
+    thresh = threshold_otsu(img_denoised)
+    # get label_img
+    bw = closing(img_denoised > thresh, square(2))
+    cleared = bw.copy()
+    label_img = measure.label(cleared)
+    borders = np.logical_xor(bw, cleared)
+    label_img[borders] = -1
     # get biggest area
     max_region = sorted((region.area, region)
         for region in regionprops(label_img))[-1][1]
     minr, minc, maxr, maxc = max_region.bbox
     return image[minr:maxr, minc:maxc]
 
-
 if __name__ == "__main__":
     path = "all-mias/mdb001.pgm"
     image = io.imread(path)
+    original = image.copy()
     # display_image(image)
     denoised_image = denoise(image)
     # display_image(denoised_image)
@@ -198,11 +206,10 @@ if __name__ == "__main__":
     holes_filled_image = fill_holes(morphological_closing_image)
     # plot_comparison(morphological_closing_image, holes_filled_image, "Holes filled")
 
-    multiplied_image = holes_filled_image*image
-    # display_image(multiplied_image)
+    multiplied_image = holes_filled_image*image    # display_image(multiplied_image)
 
     cropped_image = crop_biggest_object(multiplied_image)
-    plot_comparison(multiplied_image, cropped_image)
+    # plot_comparison(original, cropped_image, "Cropped image")
 
     # display_image(smoothened_image)
     # display_all([largest_area_only_image, small_objects_removed_image])
