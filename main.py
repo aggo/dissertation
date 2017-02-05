@@ -182,6 +182,28 @@ def crop_biggest_object(image):
     minr, minc, maxr, maxc = max_region.bbox
     return image[minr:maxr, minc:maxc]
 
+
+def determine_sum_of_pixels(image, size_of_corner=10):
+    left_matrix = image[0:size_of_corner,0:size_of_corner]
+    right_matrix = image[0:size_of_corner,image.shape[0]-size_of_corner:image.shape[0]]
+    left_sum = sum(sum(left_matrix))
+    right_sum = sum(sum(right_matrix))
+    return (left_sum, right_sum)
+
+# returns 0 for left breast orientation and 1 for right breast orientation
+def determine_breast_orientation(image,size_of_corner=10):
+    sums_of_pixels = determine_sum_of_pixels(image, size_of_corner)
+    if (sums_of_pixels[0]>sums_of_pixels[1]):
+        return 1
+    return 0
+
+
+def remove_pectoral_muscle_image(cropped_image):
+    breast_orientation = determine_breast_orientation(cropped_image)
+
+    pass
+
+
 if __name__ == "__main__":
     path = "all-mias/mdb001.pgm"
     image = io.imread(path)
@@ -206,10 +228,14 @@ if __name__ == "__main__":
     holes_filled_image = fill_holes(morphological_closing_image)
     # plot_comparison(morphological_closing_image, holes_filled_image, "Holes filled")
 
-    multiplied_image = holes_filled_image*image    # display_image(multiplied_image)
+    multiplied_image = holes_filled_image*image
 
     cropped_image = crop_biggest_object(multiplied_image)
     # plot_comparison(original, cropped_image, "Cropped image")
+    display_image(cropped_image)
+    print(determine_breast_orientation(cropped_image))
+
+    # image_without_pectoral_muscle = remove_pectoral_muscle_image(cropped_image);
 
     # display_image(smoothened_image)
     # display_all([largest_area_only_image, small_objects_removed_image])
