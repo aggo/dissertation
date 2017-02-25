@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 from scipy.ndimage import generic_filter
 
-from main import smoothen_image, determine_breast_orientation
+from main import smoothen_image, determine_breast_orientation, get_seed_pixel_coordinates
 
 
 class Tester(unittest.TestCase):
@@ -46,3 +46,10 @@ class Tester(unittest.TestCase):
                           [1,0,0,4],
                           [6,7,8,9]],dtype=np.uint8)
         self.assertTrue(determine_breast_orientation(image,size_of_corner=3)==(5,12))
+
+    def test_get_seed_pixel_coordinates(self):
+        orientation = "left";
+        image_shape=[20,20]
+        self.assertEqual([5.0,15.0],get_seed_pixel_coordinates(orientation,image_shape))
+        orientation = "right"
+        self.assertEqual([5.0, 5.0], get_seed_pixel_coordinates(orientation, image_shape))

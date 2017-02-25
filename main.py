@@ -194,14 +194,31 @@ def determine_sum_of_pixels(image, size_of_corner=10):
 def determine_breast_orientation(image,size_of_corner=10):
     sums_of_pixels = determine_sum_of_pixels(image, size_of_corner)
     if (sums_of_pixels[0]>sums_of_pixels[1]):
-        return 1
-    return 0
+        return "left"
+    return "right"
+
+
+def get_seed_pixel_coordinates(breast_orientation, image_shape, size_of_corner=10):
+    if (breast_orientation=="left"):
+        return [size_of_corner/2,image_shape[1]-size_of_corner/2]
+    return [size_of_corner/2, size_of_corner/2]
+
 
 
 def remove_pectoral_muscle_image(cropped_image):
     breast_orientation = determine_breast_orientation(cropped_image)
+    seed_pixel_coordinates = get_seed_pixel_coordinates(breast_orientation)
 
+
+
+    
+
+def get_gray_level_probability_distribution_function(image):
     pass
+
+def coarse_segmentation_using_histogram_peak_analysis(image):
+    pass
+
 
 
 if __name__ == "__main__":
@@ -220,7 +237,7 @@ if __name__ == "__main__":
     # display_image(largest_area_only_image)
     small_objects_removed_image = remove_small_objects(largest_area_only_image, min_size=100)
     # display_all([imageL, denoised_image, binary_thresholded_image, connected_components_image, largest_area_only_image])
-    # display_image(small_objects_removed_image)
+    # display_image(small_objects_r1emoved_image)
     smoothened_image = smoothen_image(small_objects_removed_image)
     # plot_comparison(small_objects_removed_image, smoothened_image, "Smoothened")
     morphological_closing_image = morphological_closing(smoothened_image, structuring_element=disk(5))
