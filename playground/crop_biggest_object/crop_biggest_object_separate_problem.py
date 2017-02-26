@@ -83,8 +83,7 @@ def main():
     path = "../all-mias/mdb001.pgm"
     img = io.imread(path)
     img_only_object = only_object(img)
-    imsave('original.png', img)
-    imsave('only_object.png', img_only_object)
+    imsave('biggest_object.png', img_only_object)
 
 
 if __name__ == '__main__':
