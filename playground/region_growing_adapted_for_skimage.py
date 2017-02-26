@@ -1,6 +1,12 @@
 import numpy
 from skimage import io
 
+
+"""
+was the starting point for region_growing_separate_problem.py but it didn't work on the breast images, only on the test
+image with one dark corner.
+"""
+
 def simple_region_growing(img, seed, threshold=1):
     # via http://www.lengrand.fr/2011/11/simple-region-growing-implementation-in-python, adapted for skimage
     region = img.copy()
