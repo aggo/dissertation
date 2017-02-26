@@ -1,5 +1,7 @@
+from pprint import pprint
+
 from scipy.ndimage import generic_filter, morphology
-from skimage import measure
+from skimage import measure, img_as_float, img_as_uint
 
 from skimage import data, io, filters
 from skimage.filters import median
@@ -20,6 +22,18 @@ def display_image(image, cmap='gray'):
     io.imshow(image, cmap=cmap)
     io.show()
 
+def save_image(image, filename):
+    ## see http://scikit-image.org/docs/dev/user_guide/data_types.html
+    image2 = img_as_float(image)
+    pprint(image2)
+    io.imsave(filename, image2)
+    # from PIL import Image
+    # im = Image.fromarray(image)
+    # im.save(filename)conda install -c https://conda.binstar.org/menpo opencv
+
+    # import matplotlib
+    #
+    # matplotlib.image.imsave(filename, image)
 
 def denoise(image):
     return median(image, disk(3))
@@ -194,8 +208,8 @@ def determine_sum_of_pixels(image, size_of_corner=10):
 def determine_breast_orientation(image,size_of_corner=10):
     sums_of_pixels = determine_sum_of_pixels(image, size_of_corner)
     if (sums_of_pixels[0]>sums_of_pixels[1]):
-        return "left"
-    return "right"
+        return "right"
+    return "left"
 
 
 def get_seed_pixel_coordinates(breast_orientation, image_shape, size_of_corner=10):
@@ -248,6 +262,10 @@ if __name__ == "__main__":
     multiplied_image = holes_filled_image*image
 
     cropped_image = crop_biggest_object(multiplied_image)
+    # name = "cr-"+path.split("/")[1]
+    # print(name)
+    # save_image(cropped_image, name)
+
     # plot_comparison(original, cropped_image, "Cropped image")
     display_image(cropped_image)
     print(determine_breast_orientation(cropped_image))
