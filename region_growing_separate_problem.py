@@ -95,7 +95,7 @@ def with_simple_test_image():
 
 def with_real_image(filename):
     image_real = io.imread(filename)
-    region = np.array(region_growing_s1(image_real, [10, 10], 50))
+    region = np.array(region_growing_s1(image_real, [100, 10], 50))
     display_img_collection([image_real, region])
 
-with_real_image("mdb002.pgm")
+with_real_image("mias-2.pgm")

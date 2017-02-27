@@ -100,7 +100,7 @@ def display_all(images):
     plt.figure(figsize=(5 * array_length, 5.5))
     index = 1
     for image in images:
-        plt.subplot(3, 2, index)  # 3 lines, 2 columns
+        plt.subplot(5, 2, index)  # 3 lines, 2 columns
         index += 1
         plt.imshow(image, cmap='gray')
     plt.tight_layout()
@@ -108,23 +108,23 @@ def display_all(images):
 
 def smoothen_image(image):
     """
-    sets a pixel's value to one where 5 or more pixels in its 3x3 neighborhood are 1
+    sets a pixel's value to one where 5 or more pixels in its 3x3 neighborhood are greater than 0
     :param image:
     :return:
     """
     window = square(3)
-    def _replace_center_with_one_if_five_neighbors_are_one(values):
+    def _replace_center_with_one_if_five_neighbors_are_different_than_0(values):
         """
         For each location in the input image, the value returned by the function is the value assigned to that location.
         That's why, naturally, the function needs to return a scalar.
         :param values:
         :return: a scalar representing the value to be set at the current location in the input image
         """
-        ones_count = 0
+        greater_than_0 = 0
         for entry in values:
-            if entry == 1:
-                ones_count += 1
-        if ones_count >= 5:
+            if entry > 0:
+                greater_than_0 += 1
+        if greater_than_0 >= 5:
             return 1
         else:
             return 0
@@ -133,7 +133,7 @@ def smoothen_image(image):
     This call will take windows of the shape given by the footprint, send them as an 1D array to the _replace function
     and return the value that is to be set in the center of the window. The edges are ignored (for now)
     """
-    new_image = generic_filter(image, _replace_center_with_one_if_five_neighbors_are_one, footprint = window)
+    new_image = generic_filter(image, _replace_center_with_one_if_five_neighbors_are_different_than_0, footprint = window)
     return new_image
 
 
@@ -234,9 +234,20 @@ def coarse_segmentation_using_histogram_peak_analysis(image):
     pass
 
 
+def how_many_with_value(image, value):
+    with_value = 0
+    for i in range (image.shape[0]):
+        for j in range(image.shape[1]):
+            if (image[i,j]==value):
+                with_value=with_value+1
+    return with_value
+
+def display_img_collection(collection):
+    io.imshow_collection(collection)
+    io.show()
 
 if __name__ == "__main__":
-    path = "all-mias/mdb001.pgm"
+    path = "all-mias/mdb003.pgm"
     image = io.imread(path)
     original = image.copy()
     # display_image(image)
@@ -249,29 +260,38 @@ if __name__ == "__main__":
     largest_area_only_image = morphological_opening_to_remove_extra_objects(connected_components_image,
                                                                             structuring_element=square(10))
     # display_image(largest_area_only_image)
-    small_objects_removed_image = remove_small_objects(largest_area_only_image, min_size=100)
-    # display_all([imageL, denoised_image, binary_thresholded_image, connected_components_image, largest_area_only_image])
-    # display_image(small_objects_r1emoved_image)
+    small_objects_removed_image = remove_small_objects(largest_area_only_image, min_size=10000)
+    # display_image(small_objects_removed_image)
+
     smoothened_image = smoothen_image(small_objects_removed_image)
+    # display_image(smoothened_image)
+
     # plot_comparison(small_objects_removed_image, smoothened_image, "Smoothened")
     morphological_closing_image = morphological_closing(smoothened_image, structuring_element=disk(5))
     # plot_comparison(image, morphological_closing_image, "Morphological closing")
     holes_filled_image = fill_holes(morphological_closing_image)
     # plot_comparison(morphological_closing_image, holes_filled_image, "Holes filled")
 
-    multiplied_image = holes_filled_image*image
+    multiplied_image = holes_filled_image*original
 
     cropped_image = crop_biggest_object(multiplied_image)
     # name = "cr-"+path.split("/")[1]
     # print(name)
     # save_image(cropped_image, name)
-
     # plot_comparison(original, cropped_image, "Cropped image")
-    display_image(cropped_image)
-    print(determine_breast_orientation(cropped_image))
-
+    # display_image(cropped_image)
+    # print(determine_breast_orientation(cropped_image))
+    # display_all([denoised_image, binary_thresholded_image, connected_components_image, largest_area_only_image,
+    #              small_objects_removed_image, smoothened_image, morphological_closing_image, holes_filled_image, multiplied_image])
     # image_without_pectoral_muscle = remove_pectoral_muscle_image(cropped_image);
 
-    # display_image(smoothened_image)
+    display_image(cropped_image)
     # display_all([largest_area_only_image, small_objects_removed_image])
     print("Done!")
+
+"""
+## issues:
+- for mdb003, only the LM at the top is cropped -> solved by setting the min_Size for remove_small_objects to 10000
+- for mdb003, smoothening sets all the image to black: that was because the smoothening checked only neighbors that are = 1 and all my pixels were actually 2
+  so all the pixels were turned to black as a result. fixed by setting the condition for turning the center point to white when the neighbors are not 0
+"""
