@@ -23,8 +23,8 @@ def update_region_pixels_mean_intensity(old_mean, new_entry):
         return new_entry
     return (old_mean+new_entry)/2
 
-
-def region_growing_s1(image, seed, threshold):
+#-----------------------------------------------------------------------------------------------------------------------
+def region_growing(image, seed, threshold = 50):
 
     region = image.copy()
     region[:,:] = 0  # blacken out the image
@@ -90,12 +90,12 @@ def with_simple_test_image():
              [0, 0,   0,   60,  0,   0,   0]]
 
     image = np.array(image)
-    region = np.array(region_growing_s1(image, [2,3], 100))
+    region = np.array(region_growing(image, [2,3], 100))
     display_img_collection([image, region])
 
 def with_real_image(filename):
     image_real = io.imread(filename)
-    region = np.array(region_growing_s1(image_real, [10, 10], 50))
+    region = np.array(region_growing(image_real, [10, 10], 50))
     display_img_collection([image_real, region])
 
 with_real_image("mdb002.pgm")

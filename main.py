@@ -1,4 +1,5 @@
 from pprint import pprint
+from queue import Queue
 
 from scipy.ndimage import generic_filter, morphology
 from skimage import measure, img_as_float, img_as_uint
@@ -196,6 +197,7 @@ def crop_biggest_object(image):
     minr, minc, maxr, maxc = max_region.bbox
     return image[minr:maxr, minc:maxc]
 
+#-----------------------------------------------------------------------------------------------------------------------
 
 def determine_sum_of_pixels(image, size_of_corner=10):
     left_matrix = image[0:size_of_corner,0:size_of_corner]
@@ -217,15 +219,72 @@ def get_seed_pixel_coordinates(breast_orientation, image_shape, size_of_corner=1
         return [size_of_corner/2,image_shape[1]-size_of_corner/2]
     return [size_of_corner/2, size_of_corner/2]
 
+def region_growing(image, seed, threshold=50):
 
+    region = image.copy()
+    region[:,:] = 0  # blacken out the image
+
+    region_pixel_intensities = []
+
+    # build a queue to hold all the pixels from the image to be processed
+    q = Queue()
+    q.put(seed)  # initially it only contains the seed pixel
+
+    orientations = ([-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1])
+
+    # initialization -> could be optimized to be done directly in the while, i guess
+    cpx = seed[0]
+    cpy = seed[1]
+    region[cpx, cpy] = 255  # whiten the pixels that belong to the segmented region
+    region_pixel_intensities.append(image[cpx, cpy])
+    # add the neighbors of the current pixel to the queue (only if the current pixel is part of the region)
+    for o in orientations:
+        neigh_line = o[0] + cpx
+        neigh_col = o[1] + cpy
+        is_in_image = image.shape[0] > neigh_line >= 0 and image.shape[1] > neigh_col >= 0
+        if (is_in_image):
+            not_visited = region[
+                              neigh_line, neigh_col] == 0  # to use a third matrix since probably using region doesn't cover all the cases
+            if (not_visited):
+                q.put([neigh_line, neigh_col])
+
+    t = 0
+    while not q.empty():
+        t=t+1
+        if (t%30000==0):
+            print(t)
+            print ("Queue size: ", q.qsize())
+            # display_image(region)
+        current_point = q.get()
+        cpx = current_point[0]
+        cpy = current_point[1]
+        if (region[cpx, cpy]==0):
+            # check if the current point can be added to the region
+            current_pixel_intensity = image[cpx, cpy]
+            region_pixels_mean_intensity = np.mean(region_pixel_intensities)
+            if (abs(region_pixels_mean_intensity-current_pixel_intensity)<threshold):   # the condition for adding a new pixel to the region
+                region[cpx, cpy] = 255  # whiten the pixels that belong to the segmented region
+                region_pixel_intensities.append(image[cpx, cpy])
+                # add the neighbors of the current pixel to the queue (only if the current pixel is part of the region)
+                for o in orientations:
+                    neigh_line = o[0] + cpx
+                    neigh_col = o[1] + cpy
+                    is_in_image = image.shape[0]>neigh_line>=0 and image.shape[1]>neigh_col>=0
+                    if (is_in_image):
+                        not_visited = region[neigh_line, neigh_col] == 0  # to use a third matrix since probably using region doesn't cover all the cases
+                        if (not_visited):
+                            q.put([neigh_line, neigh_col])
+
+    return region
 
 def remove_pectoral_muscle_image(cropped_image):
     breast_orientation = determine_breast_orientation(cropped_image)
-    seed_pixel_coordinates = get_seed_pixel_coordinates(breast_orientation)
+    seed_pixel_coordinates = get_seed_pixel_coordinates(breast_orientation, cropped_image.shape)
+    pectoral_muscle_region_highlighted = region_growing(cropped_image, seed_pixel_coordinates)
+    pectoral_muscle_removed_image = cropped_image+pectoral_muscle_region_highlighted
+    return pectoral_muscle_removed_image
+#-----------------------------------------------------------------------------------------------------------------------
 
-
-
-    
 
 def get_gray_level_probability_distribution_function(image):
     pass
@@ -247,7 +306,7 @@ def display_img_collection(collection):
     io.show()
 
 if __name__ == "__main__":
-    path = "all-mias/mdb003.pgm"
+    path = "all-mias/mdb001.pgm"
     image = io.imread(path)
     original = image.copy()
     # display_image(image)
@@ -275,6 +334,8 @@ if __name__ == "__main__":
     multiplied_image = holes_filled_image*original
 
     cropped_image = crop_biggest_object(multiplied_image)
+    pectoral_muscle_removed_image = remove_pectoral_muscle_image(cropped_image)
+    plot_comparison(cropped_image, pectoral_muscle_removed_image, "No pectoral muscle")
     # name = "cr-"+path.split("/")[1]
     # print(name)
     # save_image(cropped_image, name)
